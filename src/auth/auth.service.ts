@@ -19,12 +19,11 @@ export class AuthService {
       const isRegistered = await this.prismaService.users.findUnique({
         where: { phone_hash: phoneHash },
       });
-      console.log(isRegistered);
 
       return {
         status: 'success',
         message: 'success to check phone number',
-        data: { is_registered: true },
+        data: { is_registered: !!isRegistered },
       };
     } catch (error) {
       console.error('Error checking phone:', error);
