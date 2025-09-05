@@ -3,10 +3,19 @@ import * as crypto from 'crypto';
 
 @Injectable()
 export class CryptoService {
-  generateHash(data: string, salt?: string): string {
-    const value = salt ? data + salt : data;
+  generateSecureHash(data: string, salt: string): string {
+    return crypto
+      .createHash('sha256')
+      .update(data + salt)
+      .digest('hex');
+  }
 
-    return crypto.createHash('sha256').update(value).digest('hex');
+  generateHashForLookup(data: string): string {
+    const pepper = process.env.CRYPTO_PEPPER || 'default-pepper';
+    return crypto
+      .createHash('sha256')
+      .update(data + pepper)
+      .digest('hex');
   }
 
   generateSalt(): string {

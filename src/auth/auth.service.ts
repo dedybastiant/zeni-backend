@@ -14,7 +14,7 @@ export class AuthService {
     phoneNumber: string,
   ): Promise<CheckPhoneResponseDto> {
     try {
-      const phoneHash = this.cryptoService.generateHash(phoneNumber);
+      const phoneHash = this.cryptoService.generateHashForLookup(phoneNumber);
 
       const isRegistered = await this.prismaService.users.findUnique({
         where: { phone_hash: phoneHash },
