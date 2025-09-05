@@ -12,3 +12,23 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+
+model Users {
+  id                    String    @id @default(uuid())
+  first_name            String
+  last_name             String
+  email_enc             Bytes
+  email_hash            String    @unique
+  phone_enc             Bytes
+  phone_hash            String    @unique
+  password_hash         String
+  pin_hash              String
+  is_merchant           Boolean   @default(false)
+  failed_login_attempts Int       @default(0)
+  locked_until          DateTime?
+  created_at            DateTime  @default(now())
+  updated_at            DateTime  @updatedAt
+
+  @@index([email_hash, phone_hash])
+  @@map("users")
+}
