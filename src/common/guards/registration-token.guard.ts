@@ -6,13 +6,7 @@ import {
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { Request } from 'express';
-
-interface RegistrationJwtPayload {
-  sessionId: string;
-  type: 'registration';
-  iat: number;
-  exp: number;
-}
+import { RegistrationJwtPayload } from '../interfaces/registration-jwt-payload.interface';
 
 interface RegistrationRequest extends Request {
   registrationPayload?: RegistrationJwtPayload;
