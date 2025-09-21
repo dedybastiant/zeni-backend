@@ -1,0 +1,94 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum OtpType {
+  REGISTER
+  LOGIN
+  TRANSFER
+  CHANGE_PASSWORD
+}
+
+enum OtpChannel {
+  SMS
+  EMAIL
+  WHATSAPP
+}
+
+enum RegistrationStep {
+  NAME_INPUT
+  PASSWORD_INPUT
+  PASSCODE_INPUT
+  EMAIL_INPUT
+  EMAIL_VERIFY
+  COMPLETED
+}
+
+model Users {
+  id                    String          @id @default(uuid())
+  first_name            String
+  last_name             String
+  email_enc             String
+  email_hash            String          @unique
+  phone_enc             String
+  phone_hash            String          @unique
+  password_hash         String
+  passcode_hash         String
+  failed_login_attempts Int             @default(0)
+  locked_until          DateTime?
+  is_deleted            Boolean
+  deleted_at            DateTime
+  phone_verified_at     DateTime
+  email_verified_at     DateTime
+  created_at            DateTime        @default(now())
+  updated_at            DateTime        @updatedAt
+  OtpChallenges         OtpChallenges[]
+
+  @@index([email_hash, phone_hash])
+  @@map("users")
+}
+
+model OtpChallenges {
+  id          String     @id @default(uuid())
+  phone_hash  String
+  email_hash  String?
+  user_id     String?
+  type        OtpType
+  channel     OtpChannel
+  code_hash   String
+  code_salt   String
+  is_consumed Boolean    @default(false)
+  expired_at  DateTime
+  consumed_at DateTime?
+  created_at  DateTime   @default(now())
+
+  user Users? @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id, type, expired_at])
+  @@map("otp_challenges")
+}
+
+model RegistrationSessions {
+  id                String           @id @default(uuid())
+  phone_enc         String
+  phone_hash        String
+  verification_data Json?
+  registration_data Json?
+  next_step         RegistrationStep
+  expires_at        DateTime
+  created_at        DateTime         @default(now())
+
+  @@index([phone_hash])
+  @@map("registration_sessions")
+}
