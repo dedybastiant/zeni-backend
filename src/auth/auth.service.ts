@@ -1,13 +1,22 @@
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import {
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+  UnprocessableEntityException,
+} from '@nestjs/common';
 import { CryptoService, LoggerService } from 'src/common/services';
 import { PrismaService } from 'src/prisma/prisma.service';
 import {
   CheckPhoneNumberRequestDto,
   CheckPhoneNumberResponseData,
   CheckPhoneNumberResponseDto,
+  InputNameRequestDto,
+  InputNameResponseDto,
 } from './dto/auth.dto';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import { JwtService } from '@nestjs/jwt';
+import { Prisma, RegistrationStep } from '@prisma/client';
+import { RegistrationJwtPayload } from 'src/common/interfaces/registration-jwt-payload.interface';
 
 @Injectable()
 export class AuthService {
@@ -87,5 +96,61 @@ export class AuthService {
         'Failed to check phone registration',
       );
     }
+  }
+
+  async inputName(
+    jwtPayload: RegistrationJwtPayload,
+    inputNameRequestDto: InputNameRequestDto,
+  ): Promise<InputNameResponseDto> {
+    const { sub: phoneNumber } = jwtPayload;
+    const { firstName, lastName } = inputNameRequestDto;
+
+    const hashedPhoneNumber =
+      this.cryptoService.generateHashForLookup(phoneNumber);
+
+    const registrationSession =
+      await this.prismaService.registrationSessions.findFirst({
+        where: { phone_hash: hashedPhoneNumber },
+        select: {
+          id: true,
+          verification_data: true,
+          registration_data: true,
+          next_step: true,
+        },
+      });
+
+    if (!registrationSession) {
+      throw new NotFoundException('session not found');
+    }
+
+    if (registrationSession.next_step !== RegistrationStep.NAME_INPUT) {
+      throw new UnprocessableEntityException(
+        `Expected step NAME_INPUT but got ${registrationSession.next_step}`,
+      );
+    }
+
+    const currentRegistrationData = (registrationSession.registration_data ??
+      {}) as Record<string, any>;
+    const newRegistrationData: Prisma.JsonObject = {
+      ...currentRegistrationData,
+      firstName: firstName,
+      lastName: lastName,
+    };
+
+    const nextStep = RegistrationStep.PASSCODE_INPUT;
+
+    await this.prismaService.registrationSessions.update({
+      where: { id: registrationSession.id },
+      data: {
+        registration_data: newRegistrationData,
+        next_step: nextStep,
+      },
+    });
+
+    const resp = new InputNameResponseDto();
+    resp.status = 'succes';
+    resp.message = 'name inputted successfully';
+    resp.nextStep = nextStep;
+    return resp;
   }
 }
