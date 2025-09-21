@@ -1,7 +1,9 @@
+import { RegistrationStep } from '@prisma/client';
 import { Expose, Type } from 'class-transformer';
 import {
   IsBoolean,
   IsDefined,
+  IsEnum,
   IsNotEmpty,
   IsNumberString,
   IsString,
@@ -33,4 +35,23 @@ export class CheckPhoneNumberResponseData {
 export class CheckPhoneNumberResponseDto extends BaseResponseDto {
   @Type(() => CheckPhoneNumberResponseData)
   data: CheckPhoneNumberResponseData;
+}
+
+export class InputNameRequestDto {
+  @IsDefined({ message: 'First name is required' })
+  @IsNotEmpty({ message: 'First name cannot be blank' })
+  @IsString({ message: 'First name should be a string' })
+  @Length(3, 32, { message: 'First name must be between 3 and 32 digits long' })
+  firstName: string;
+
+  @IsDefined({ message: 'Last name is required' })
+  @IsNotEmpty({ message: 'Last name cannot be blank' })
+  @IsString({ message: 'Last name should be a string' })
+  @Length(3, 32, { message: 'Last name must be between 3 and 32 digits long' })
+  lastName: string;
+}
+
+export class InputNameResponseDto extends BaseResponseDto {
+  @IsEnum(RegistrationStep, { message: 'Invalid next step' })
+  nextStep: string;
 }

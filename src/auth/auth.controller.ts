@@ -1,6 +1,12 @@
-import { Body, Controller, Post } from '@nestjs/common';
+import { Body, Controller, Post, UseGuards } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { CheckPhoneNumberRequestDto } from './dto/auth.dto';
+import {
+  CheckPhoneNumberRequestDto,
+  InputNameRequestDto,
+} from './dto/auth.dto';
+import { RegistrationPayload } from 'src/common/decorators/registration-payload.decorator';
+import { RegistrationTokenGuard } from 'src/common/guards/registration-token.guard';
+import type { RegistrationJwtPayload } from 'src/common/interfaces/registration-jwt-payload.interface';
 
 @Controller('v1/auth')
 export class AuthController {
@@ -11,5 +17,14 @@ export class AuthController {
     @Body() checkPhoneNumberRequestDto: CheckPhoneNumberRequestDto,
   ) {
     return this.authService.checkPhoneNumber(checkPhoneNumberRequestDto);
+  }
+
+  @UseGuards(RegistrationTokenGuard)
+  @Post('/input-name')
+  inputName(
+    @RegistrationPayload() jwtPayload: RegistrationJwtPayload,
+    @Body() inputNameRequestDto: InputNameRequestDto,
+  ) {
+    return this.authService.inputName(jwtPayload, inputNameRequestDto);
   }
 }
