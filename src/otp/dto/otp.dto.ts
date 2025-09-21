@@ -1,4 +1,4 @@
-import { OtpChannel, OtpType } from '@prisma/client';
+import { OtpChannel, OtpType, RegistrationStep } from '@prisma/client';
 import {
   IsDefined,
   IsEmail,
@@ -36,3 +36,15 @@ export class GenerateOtpRequestDto {
 }
 
 export class GenerateOtpResponseDto extends BaseResponseDto {}
+
+export class VerifyOtpRequestDto extends GenerateOtpRequestDto {
+  @IsDefined({ message: 'OTP code cannot be empty' })
+  @IsNotEmpty({ message: 'OTP code cannot be empty' })
+  @IsNumberString({}, { message: 'OTP code must contain only digits' })
+  otpCode: string;
+}
+
+export class VerifyOtpResponseDto extends BaseResponseDto {
+  @IsEnum(RegistrationStep, { message: 'Invalid Next step' })
+  nextStep: string;
+}
