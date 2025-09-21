@@ -4,6 +4,7 @@ import { PrismaModule } from './prisma/prisma.module';
 import { CommonModule } from './common/common.module';
 import { NotificationModule } from './notification/notification.module';
 import { OtpModule } from './otp/otp.module';
+import { JwtModule } from '@nestjs/jwt';
 
 @Module({
   imports: [
@@ -12,6 +13,11 @@ import { OtpModule } from './otp/otp.module';
     CommonModule,
     NotificationModule,
     OtpModule,
+    JwtModule.register({
+      global: true,
+      secret: process.env.JWT_SECRET,
+      signOptions: { expiresIn: '10m' },
+    }),
   ],
   controllers: [],
   providers: [],
