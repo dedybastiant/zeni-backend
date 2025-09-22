@@ -4,6 +4,7 @@ import {
   CheckPhoneNumberRequestDto,
   InputNameRequestDto,
   InputPasscodeRequestDto,
+  InputPasswordRequestDto,
 } from './dto/auth.dto';
 import { RegistrationPayload } from 'src/common/decorators/registration-payload.decorator';
 import { RegistrationTokenGuard } from 'src/common/guards/registration-token.guard';
@@ -36,5 +37,14 @@ export class AuthController {
     @Body() inputPasscodeRequestDto: InputPasscodeRequestDto,
   ) {
     return this.authService.inputPasscode(jwtPayload, inputPasscodeRequestDto);
+  }
+
+  @UseGuards(RegistrationTokenGuard)
+  @Post('/input-password')
+  inputPassword(
+    @RegistrationPayload() jwtPayload: RegistrationJwtPayload,
+    @Body() inputPasswordRequestDto: InputPasswordRequestDto,
+  ) {
+    return this.authService.inputPassword(jwtPayload, inputPasswordRequestDto);
   }
 }
