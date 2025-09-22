@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Injectable,
   InternalServerErrorException,
   NotFoundException,
@@ -12,6 +13,8 @@ import {
   CheckPhoneNumberResponseDto,
   InputNameRequestDto,
   InputNameResponseDto,
+  InputPasscodeRequestDto,
+  InputPasscodeResponseDto,
 } from './dto/auth.dto';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import { JwtService } from '@nestjs/jwt';
@@ -150,6 +153,65 @@ export class AuthService {
     const resp = new InputNameResponseDto();
     resp.status = 'succes';
     resp.message = 'name inputted successfully';
+    resp.nextStep = nextStep;
+    return resp;
+  }
+
+  async inputPasscode(
+    jwtPayload: RegistrationJwtPayload,
+    inputPasscodeRequestDto: InputPasscodeRequestDto,
+  ): Promise<InputNameResponseDto> {
+    const { sub: phoneNumber } = jwtPayload;
+    const { passcode, confirmationPasscode } = inputPasscodeRequestDto;
+
+    if (passcode !== confirmationPasscode) {
+      throw new BadRequestException('invalid passcode confirmation');
+    }
+
+    const hashedPhoneNumber =
+      this.cryptoService.generateHashForLookup(phoneNumber);
+
+    const registrationSession =
+      await this.prismaService.registrationSessions.findFirst({
+        where: { phone_hash: hashedPhoneNumber },
+        select: {
+          id: true,
+          verification_data: true,
+          registration_data: true,
+          next_step: true,
+        },
+      });
+
+    if (!registrationSession) {
+      throw new NotFoundException('session not found');
+    }
+
+    if (registrationSession.next_step !== RegistrationStep.PASSCODE_INPUT) {
+      throw new UnprocessableEntityException(
+        `Expected step PASSCODE_INPUT but got ${registrationSession.next_step}`,
+      );
+    }
+
+    const currentRegistrationData = (registrationSession.registration_data ??
+      {}) as Record<string, any>;
+    const newRegistrationData: Prisma.JsonObject = {
+      ...currentRegistrationData,
+      credentials: { passcode: passcode },
+    };
+
+    const nextStep = RegistrationStep.PASSWORD_INPUT;
+
+    await this.prismaService.registrationSessions.update({
+      where: { id: registrationSession.id },
+      data: {
+        registration_data: newRegistrationData,
+        next_step: nextStep,
+      },
+    });
+
+    const resp = new InputPasscodeResponseDto();
+    resp.status = 'succes';
+    resp.message = 'passcode inputted successfully';
     resp.nextStep = nextStep;
     return resp;
   }
