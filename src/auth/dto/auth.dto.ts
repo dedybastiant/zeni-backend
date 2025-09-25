@@ -3,6 +3,7 @@ import { Expose, Type } from 'class-transformer';
 import {
   IsBoolean,
   IsDefined,
+  IsEmail,
   IsEnum,
   IsNotEmpty,
   IsNumberString,
@@ -119,4 +120,30 @@ export class InputPasswordRequestDto {
 export class InputPasswordResponseDto extends BaseResponseDto {
   @IsEnum(RegistrationStep, { message: 'Invalid next step' })
   nextStep: string;
+}
+
+export class InputEmailRequestDto {
+  @IsDefined({ message: 'Email is required' })
+  @IsNotEmpty({ message: 'Email cannot be blank' })
+  @IsEmail({}, { message: 'Invalid email format' })
+  email: string;
+}
+
+export class InputEmailResponseDto extends BaseResponseDto {
+  @IsEnum(RegistrationStep, { message: 'Invalid next step' })
+  nextStep: string;
+}
+
+export class EmailVerificationRequestDto {
+  @IsDefined({ message: 'Token is required' })
+  @IsNotEmpty({ message: 'Token cannot be blank' })
+  @IsString({ message: 'Token should be a string' })
+  token: string;
+}
+
+export class EmailVerificationResponseDto extends BaseResponseDto {
+  @IsDefined({ message: 'Token is required' })
+  @IsNotEmpty({ message: 'Token cannot be blank' })
+  @IsString({ message: 'Token should be a string' })
+  token: string;
 }

@@ -1,7 +1,9 @@
-import { Body, Controller, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Post, Query, UseGuards } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import {
   CheckPhoneNumberRequestDto,
+  EmailVerificationRequestDto,
+  InputEmailRequestDto,
   InputNameRequestDto,
   InputPasscodeRequestDto,
   InputPasswordRequestDto,
@@ -46,5 +48,23 @@ export class AuthController {
     @Body() inputPasswordRequestDto: InputPasswordRequestDto,
   ) {
     return this.authService.inputPassword(jwtPayload, inputPasswordRequestDto);
+  }
+
+  @UseGuards(RegistrationTokenGuard)
+  @Post('/input-email')
+  inputEmail(
+    @RegistrationPayload() jwtPayload: RegistrationJwtPayload,
+    @Body() inputEmailRequestDto: InputEmailRequestDto,
+  ) {
+    return this.authService.inputEmail(jwtPayload, inputEmailRequestDto);
+  }
+
+  @Get('/email-verification')
+  emailVerification(
+    @Query() emailVerificationRequestDto: EmailVerificationRequestDto,
+  ) {
+    return this.authService.emailVerification(
+      emailVerificationRequestDto.token,
+    );
   }
 }
