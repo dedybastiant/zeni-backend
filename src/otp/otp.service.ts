@@ -5,7 +5,11 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { RedisService } from 'src/common/redis/redis.service';
-import { CryptoService, LoggerService } from 'src/common/services';
+import {
+  CryptoService,
+  LoggerService,
+  TokenService,
+} from 'src/common/services';
 import { NotificationService } from 'src/notification/notification.service';
 import { PrismaService } from 'src/prisma/prisma.service';
 import {
@@ -25,6 +29,7 @@ export class OtpService {
     private readonly redisService: RedisService,
     private readonly notificationService: NotificationService,
     private readonly logger: LoggerService,
+    private readonly tokenService: TokenService,
   ) {}
 
   private generateRandomNumber(): string {
@@ -193,6 +198,13 @@ export class OtpService {
     );
 
     const resp = new VerifyOtpResponseDto();
+    const loginToken = await this.tokenService.createLoginToken(phoneNumber);
+    if (type != OtpType.REGISTER) {
+      resp.status = 'success';
+      resp.message = 'otp verified successfully';
+      resp.token = loginToken;
+      return resp;
+    }
 
     const registrationSession =
       await this.prismaService.registrationSessions.findFirst({

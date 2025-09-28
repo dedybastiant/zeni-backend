@@ -1,5 +1,5 @@
 import { RegistrationStep } from '@prisma/client';
-import { Expose, Type } from 'class-transformer';
+import { Type } from 'class-transformer';
 import {
   IsBoolean,
   IsDefined,
@@ -28,10 +28,11 @@ export class CheckPhoneNumberResponseData {
   @IsBoolean({ message: 'Is Registered should be a boolean' })
   isRegistered: boolean;
 
-  @Expose({ name: 'token' })
-  @IsDefined({ message: 'Token cannot be empty' })
   @IsString({ message: 'Token should be a string' })
   token: string;
+
+  @IsString({ message: 'UserId should be a string' })
+  userId: string;
 }
 
 export class CheckPhoneNumberResponseDto extends BaseResponseDto {

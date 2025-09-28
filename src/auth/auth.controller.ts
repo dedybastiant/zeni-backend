@@ -9,8 +9,8 @@ import {
   InputPasswordRequestDto,
 } from './dto/auth.dto';
 import { RegistrationPayload } from 'src/common/decorators/registration-payload.decorator';
-import { RegistrationTokenGuard } from 'src/common/guards/registration-token.guard';
-import type { RegistrationJwtPayload } from 'src/common/interfaces/registration-jwt-payload.interface';
+import { RegistrationTokenGuard } from 'src/common/guards/auth-token.guard';
+import type { RegistrationJwtPayload } from 'src/common/interfaces/jwt-payload.interface';
 
 @Controller('v1/auth')
 export class AuthController {

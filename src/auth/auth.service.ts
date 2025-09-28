@@ -6,7 +6,11 @@ import {
   UnprocessableEntityException,
   ConflictException,
 } from '@nestjs/common';
-import { CryptoService, LoggerService } from 'src/common/services';
+import {
+  CryptoService,
+  LoggerService,
+  TokenService,
+} from 'src/common/services';
 import { PrismaService } from 'src/prisma/prisma.service';
 import {
   CheckPhoneNumberRequestDto,
@@ -21,9 +25,8 @@ import {
   InputPasswordRequestDto,
 } from './dto/auth.dto';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
-import { JwtService } from '@nestjs/jwt';
 import { Prisma, RegistrationStep } from '@prisma/client';
-import { RegistrationJwtPayload } from 'src/common/interfaces/registration-jwt-payload.interface';
+import { RegistrationJwtPayload } from 'src/common/interfaces/jwt-payload.interface';
 import { NotificationService } from 'src/notification/notification.service';
 import { SendEmailVerificationRequestDto } from 'src/notification/dto/notification.dto';
 
@@ -56,24 +59,10 @@ export class AuthService {
   constructor(
     private readonly prismaService: PrismaService,
     private readonly cryptoService: CryptoService,
-    private readonly jwtService: JwtService,
+    private readonly tokenService: TokenService,
     private readonly notificationService: NotificationService,
     private readonly logger: LoggerService,
   ) {}
-
-  async createTemporaryToken(phoneNumber: string) {
-    return this.jwtService.signAsync(
-      { sub: phoneNumber, type: 'registration' },
-      { expiresIn: '10m' },
-    );
-  }
-
-  async createLoginToken(phoneNumber: string) {
-    return this.jwtService.signAsync(
-      { sub: phoneNumber, type: 'login' },
-      { expiresIn: '10m' },
-    );
-  }
 
   async checkPhoneNumber(
     checkPhoneNumberRequestDto: CheckPhoneNumberRequestDto,
@@ -101,7 +90,7 @@ export class AuthService {
         AuthService.name,
       );
 
-      const token = await this.createTemporaryToken(phoneNumber);
+      const token = await this.tokenService.createTemporaryToken(phoneNumber);
 
       if (!token) {
         this.logger.error(
@@ -118,7 +107,12 @@ export class AuthService {
 
       const dataDto = new CheckPhoneNumberResponseData();
       dataDto.isRegistered = !!isRegistered;
-      dataDto.token = token;
+
+      if (!isRegistered) {
+        dataDto.token = token;
+      } else {
+        dataDto.userId = isRegistered.id;
+      }
 
       const resp = new CheckPhoneNumberResponseDto();
       resp.status = 'success';
@@ -467,15 +461,15 @@ export class AuthService {
         passcode_hash: registration_data.credentials.passcode_hash,
         phone_verified_at: verification_data.phone_verified_at,
         email_verified_at: verification_data.email_verified_at,
-        is_deleted: false,
-        deleted_at: currentTime,
       },
       select: {
         phone_hash: true,
       },
     });
 
-    const loginToken = await this.createLoginToken(registerUser.phone_hash);
+    const loginToken = await this.tokenService.createLoginToken(
+      registerUser.phone_hash,
+    );
     const resp = new EmailVerificationResponseDto();
     resp.status = 'success';
     resp.message = 'email verification success';
