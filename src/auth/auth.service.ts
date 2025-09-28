@@ -5,6 +5,8 @@ import {
   NotFoundException,
   UnprocessableEntityException,
   ConflictException,
+  UnauthorizedException,
+  HttpException,
 } from '@nestjs/common';
 import {
   CryptoService,
@@ -69,7 +71,6 @@ export class AuthService {
   ): Promise<CheckPhoneNumberResponseDto> {
     try {
       const { phoneNumber } = checkPhoneNumberRequestDto;
-
       const hashedPhoneNumber =
         this.cryptoService.generateHashForLookup(phoneNumber);
 
@@ -80,8 +81,17 @@ export class AuthService {
 
       const isRegistered = await this.prismaService.users.findFirst({
         where: { phone_hash: hashedPhoneNumber },
-        select: { id: true },
+        select: { id: true, locked_until: true },
       });
+
+      const currentDate = new Date();
+      if (
+        isRegistered &&
+        isRegistered.locked_until != null &&
+        isRegistered.locked_until > currentDate
+      ) {
+        throw new UnauthorizedException('account is locked');
+      }
 
       this.logger.log(
         `Phone number ${hashedPhoneNumber} is ${
@@ -91,13 +101,12 @@ export class AuthService {
       );
 
       const token = await this.tokenService.createTemporaryToken(phoneNumber);
-
       if (!token) {
         this.logger.error(
           `Failed to create token for phone number ${hashedPhoneNumber}`,
           AuthService.name,
         );
-        throw new Error('Failed to generate token');
+        throw new InternalServerErrorException('Failed to generate token');
       }
 
       this.logger.log(
@@ -127,9 +136,11 @@ export class AuthService {
         this.logger.error(`Error checking phone: ${error}`);
       }
 
-      throw new InternalServerErrorException(
-        'Failed to check phone registration',
-      );
+      this.logger.error('Error checking phone');
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      throw new InternalServerErrorException('Unexpected error');
     }
   }
 

@@ -45,6 +45,7 @@ export class OtpService {
 
     const phoneNumber = requestOtp.phoneNumber;
     const channel = requestOtp.channel;
+    const currentDate = new Date();
 
     const hashedPhoneNumber =
       this.cryptoService.generateHashForLookup(phoneNumber);
@@ -54,7 +55,21 @@ export class OtpService {
       OtpService.name,
     );
 
-    const count = await this.redisService.getOtpCounter(
+    if (type !== OtpType.REGISTER) {
+      const user = await this.prismaService.users.findUnique({
+        where: { phone_hash: hashedPhoneNumber },
+      });
+
+      if (
+        user &&
+        user.locked_until != null &&
+        user.locked_until > currentDate
+      ) {
+        throw new UnauthorizedException('account locked');
+      }
+    }
+
+    const count = await this.redisService.getRequestOtpCounter(
       phoneNumber,
       type,
       channel,
@@ -103,7 +118,11 @@ export class OtpService {
       },
     });
 
-    await this.redisService.incrementOtpCounter(phoneNumber, type, channel);
+    await this.redisService.incrementRequestOtpCounter(
+      phoneNumber,
+      type,
+      channel,
+    );
 
     const sendOtp: SendOtpRequestDto = {
       phoneNumber: requestOtp.phoneNumber,
@@ -124,6 +143,18 @@ export class OtpService {
 
   async verifyOtp(requestVerifyOtp: VerifyOtpRequestDto) {
     const { channel, type, email, phoneNumber, otpCode } = requestVerifyOtp;
+
+    const counter = await this.redisService.getValidationOtpCounter(
+      phoneNumber,
+      type,
+      channel,
+    );
+
+    if (counter && +counter >= 5) {
+      throw new BadRequestException(
+        'otp validation limit reached, try again later',
+      );
+    }
 
     if (channel === OtpChannel.EMAIL && !email) {
       throw new BadRequestException(
@@ -184,6 +215,11 @@ export class OtpService {
         );
 
         if (hashedOtp !== otpRecord.code_hash) {
+          await this.redisService.incrementValidationOtpCounter(
+            phoneNumber,
+            type,
+            channel,
+          );
           throw new UnauthorizedException('invalid otp');
         }
 
