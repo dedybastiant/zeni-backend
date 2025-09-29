@@ -47,8 +47,8 @@ model Users {
   passcode_hash         String
   failed_login_attempts Int             @default(0)
   locked_until          DateTime?
-  is_deleted            Boolean
-  deleted_at            DateTime
+  is_deleted            Boolean?        @default(false)
+  deleted_at            DateTime?
   phone_verified_at     DateTime
   email_verified_at     DateTime
   created_at            DateTime        @default(now())
@@ -91,4 +91,18 @@ model RegistrationSessions {
 
   @@index([phone_hash])
   @@map("registration_sessions")
+}
+
+model EmailVerificationChallenges {
+  id                 String    @id @default(uuid())
+  email_hash         String
+  phone_hash         String
+  verification_token String
+  is_consumed        Boolean   @default(false)
+  cosumed_at         DateTime?
+  expired_at         DateTime
+  created_at         DateTime  @default(now())
+
+  @@index([phone_hash, email_hash])
+  @@map("email_verification_challenges")
 }

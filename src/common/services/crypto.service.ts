@@ -98,4 +98,8 @@ export class CryptoService {
   decryptEmail(encryptedEmail: string): string {
     return this.decrypt(encryptedEmail);
   }
+
+  generateVerificationEmailToken(): string {
+    return crypto.randomBytes(32).toString('hex');
+  }
 }

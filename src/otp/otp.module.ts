@@ -5,9 +5,16 @@ import { CommonModule } from 'src/common/common.module';
 import { RedisModule } from 'src/common/redis/redis.module';
 import { NotificationModule } from 'src/notification/notification.module';
 import { PrismaModule } from 'src/prisma/prisma.module';
+import { AuthModule } from 'src/auth/auth.module';
 
 @Module({
-  imports: [CommonModule, RedisModule, NotificationModule, PrismaModule],
+  imports: [
+    CommonModule,
+    RedisModule,
+    NotificationModule,
+    PrismaModule,
+    AuthModule,
+  ],
   providers: [OtpService],
   controllers: [OtpController],
 })

@@ -5,7 +5,11 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { RedisService } from 'src/common/redis/redis.service';
-import { CryptoService, LoggerService } from 'src/common/services';
+import {
+  CryptoService,
+  LoggerService,
+  TokenService,
+} from 'src/common/services';
 import { NotificationService } from 'src/notification/notification.service';
 import { PrismaService } from 'src/prisma/prisma.service';
 import {
@@ -25,6 +29,7 @@ export class OtpService {
     private readonly redisService: RedisService,
     private readonly notificationService: NotificationService,
     private readonly logger: LoggerService,
+    private readonly tokenService: TokenService,
   ) {}
 
   private generateRandomNumber(): string {
@@ -40,6 +45,7 @@ export class OtpService {
 
     const phoneNumber = requestOtp.phoneNumber;
     const channel = requestOtp.channel;
+    const currentDate = new Date();
 
     const hashedPhoneNumber =
       this.cryptoService.generateHashForLookup(phoneNumber);
@@ -49,7 +55,21 @@ export class OtpService {
       OtpService.name,
     );
 
-    const count = await this.redisService.getOtpCounter(
+    if (type !== OtpType.REGISTER) {
+      const user = await this.prismaService.users.findUnique({
+        where: { phone_hash: hashedPhoneNumber },
+      });
+
+      if (
+        user &&
+        user.locked_until != null &&
+        user.locked_until > currentDate
+      ) {
+        throw new UnauthorizedException('account locked');
+      }
+    }
+
+    const count = await this.redisService.getRequestOtpCounter(
       phoneNumber,
       type,
       channel,
@@ -98,7 +118,11 @@ export class OtpService {
       },
     });
 
-    await this.redisService.incrementOtpCounter(phoneNumber, type, channel);
+    await this.redisService.incrementRequestOtpCounter(
+      phoneNumber,
+      type,
+      channel,
+    );
 
     const sendOtp: SendOtpRequestDto = {
       phoneNumber: requestOtp.phoneNumber,
@@ -119,6 +143,18 @@ export class OtpService {
 
   async verifyOtp(requestVerifyOtp: VerifyOtpRequestDto) {
     const { channel, type, email, phoneNumber, otpCode } = requestVerifyOtp;
+
+    const counter = await this.redisService.getValidationOtpCounter(
+      phoneNumber,
+      type,
+      channel,
+    );
+
+    if (counter && +counter >= 5) {
+      throw new BadRequestException(
+        'otp validation limit reached, try again later',
+      );
+    }
 
     if (channel === OtpChannel.EMAIL && !email) {
       throw new BadRequestException(
@@ -179,6 +215,11 @@ export class OtpService {
         );
 
         if (hashedOtp !== otpRecord.code_hash) {
+          await this.redisService.incrementValidationOtpCounter(
+            phoneNumber,
+            type,
+            channel,
+          );
           throw new UnauthorizedException('invalid otp');
         }
 
@@ -193,6 +234,13 @@ export class OtpService {
     );
 
     const resp = new VerifyOtpResponseDto();
+    const loginToken = await this.tokenService.createLoginToken(phoneNumber);
+    if (type != OtpType.REGISTER) {
+      resp.status = 'success';
+      resp.message = 'otp verified successfully';
+      resp.token = loginToken;
+      return resp;
+    }
 
     const registrationSession =
       await this.prismaService.registrationSessions.findFirst({

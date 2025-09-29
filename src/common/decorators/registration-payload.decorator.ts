@@ -1,5 +1,5 @@
 import { createParamDecorator, ExecutionContext } from '@nestjs/common';
-import type { RegistrationJwtPayload } from '../interfaces/registration-jwt-payload.interface';
+import type { RegistrationJwtPayload } from '../interfaces/jwt-payload.interface';
 
 interface RegistrationRequest extends Request {
   registrationPayload?: RegistrationJwtPayload;

@@ -47,4 +47,7 @@ export class VerifyOtpRequestDto extends GenerateOtpRequestDto {
 export class VerifyOtpResponseDto extends BaseResponseDto {
   @IsEnum(RegistrationStep, { message: 'Invalid Next step' })
   nextStep: string;
+
+  @IsString({ message: 'Token must be a string' })
+  token: string;
 }

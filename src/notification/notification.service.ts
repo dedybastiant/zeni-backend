@@ -1,7 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { OtpChannel, OtpType } from '@prisma/client';
 import { LoggerService } from 'src/common/services';
-import { SendOtpRequestDto } from './dto/notification.dto';
+import {
+  SendEmailVerificationRequestDto,
+  SendOtpRequestDto,
+} from './dto/notification.dto';
 
 @Injectable()
 export class NotificationService {
@@ -50,5 +53,11 @@ export class NotificationService {
         );
         break;
     }
+  }
+
+  sendEmailVerification(
+    sendEmailVerification: SendEmailVerificationRequestDto,
+  ) {
+    console.log(sendEmailVerification.email, sendEmailVerification.token);
   }
 }
