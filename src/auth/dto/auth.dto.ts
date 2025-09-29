@@ -62,13 +62,13 @@ export class InputNameResponseDto extends BaseResponseDto {
 export class InputPasscodeRequestDto {
   @IsDefined({ message: 'Passcode is required' })
   @IsNotEmpty({ message: 'Passcode cannot be blank' })
-  @IsString({ message: 'Passcode should be a string' })
+  @IsNumberString({}, { message: 'Passcode should be a digits' })
   @Length(6, 6, { message: 'Passcode must be 6 digits long' })
   passcode: string;
 
   @IsDefined({ message: 'Passcode is required' })
   @IsNotEmpty({ message: 'Passcode cannot be blank' })
-  @IsString({ message: 'Passcode should be a string' })
+  @IsNumberString({}, { message: 'Passcode should be a digits' })
   @Length(6, 6, { message: 'Passcode must be 6 digits long' })
   confirmationPasscode: string;
 }

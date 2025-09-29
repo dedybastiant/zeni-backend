@@ -62,7 +62,7 @@ export class LoginTokenGuard implements CanActivate {
     try {
       payload = await this.jwtService.verifyAsync<LoginJwtPayload>(token);
     } catch {
-      throw new UnauthorizedException('Invalid or expired registration token');
+      throw new UnauthorizedException('Invalid or expired access token');
     }
 
     if (payload.type !== 'login') {
